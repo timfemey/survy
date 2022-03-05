@@ -23,6 +23,7 @@ interface vote {
 
 interface input {
   id: string;
+  author: string;
   title: string;
   vote: vote;
 }
@@ -31,8 +32,9 @@ if (db) {
   app.post(
     "/polls",
     body(`title`).isString(),
-    body(`vote`).isArray({ max: 1 }),
-    (req, res, next) => {
+    body(`author`).isString(),
+    body(`vote`).isArray({ min: 2, max: 4 }),
+    async (req, res, next) => {
       const err = validationResult(req);
       if (!err.isEmpty()) {
         return res
@@ -42,12 +44,24 @@ if (db) {
 
       let data: input = {
         id: v4(),
+        author: req.body.author,
         title: req.body.title,
         vote: req.body.votes.map((vote: string) => {
           return { name: vote, count: 0, id: v4() };
         }),
       };
-      return res.json(data);
+      //Add Data to Database
+      try {
+        await db.collection("polls").add(data);
+      } catch (err) {
+        return res.json({ message: err });
+      }
+      //Server Response
+      return res.json({
+        message: "Poll Created",
+        id: data.id,
+        title: data.title,
+      });
     }
   );
 
