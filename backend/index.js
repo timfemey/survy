@@ -21,10 +21,36 @@ app.set("port", port);
 app.set("env", node_env);
 app.use(bodyParser.json());
 app.use(cors());
+import rateLimit from "express-rate-limit";
+const rateLimiter = rateLimit({
+    windowMs: 2 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+// Apply the rate limiting middleware to all requests
+app.use(rateLimiter);
 if (!db) {
     console.error(`Firebase database not set or initialized`);
     process.exit(1);
 }
+app.get("/polls/:poll", (req, res, next) => {
+    var _a;
+    let param = String((_a = req.params) === null || _a === void 0 ? void 0 : _a.poll).toString();
+    db.collection("polls")
+        .doc(param)
+        .get()
+        .then((doc) => {
+        if (doc.exists) {
+            let { author, title, votes } = doc.data();
+            res.json({ author: author, title: title, votes: votes });
+        }
+        else {
+            res.json({ message: `Poll not Found` });
+            return;
+        }
+    });
+});
 app.post("/polls", body(`title`).isString(), body(`author`).isString(), body(`votes`).isArray({ min: 2, max: 4 }), (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const err = validationResult(req);
     if (!err.isEmpty()) {
@@ -32,13 +58,15 @@ app.post("/polls", body(`title`).isString(), body(`author`).isString(), body(`vo
             .status(422)
             .json({ message: "Wrong Input Data", error: err.array() });
     }
+    let obj = {};
+    req.body.votes.map((vote) => {
+        obj[`${vote}`] = { count: 0 };
+    });
     let data = {
         id: v4(),
         author: req.body.author,
         title: req.body.title,
-        votes: req.body.votes.map((vote) => {
-            return { name: vote, count: 0, id: v4() };
-        }),
+        votes: obj,
     };
     //Add Data to Database
     try {
@@ -47,7 +75,7 @@ app.post("/polls", body(`title`).isString(), body(`author`).isString(), body(`vo
     catch (err) {
         return res.json({ message: err });
     }
-    //Server Response
+    // Server Response
     return res.json({
         message: "Poll Created",
         id: data.id,
@@ -68,15 +96,15 @@ app.put("/polls/:poll", body(`vote`).isString(), (req, res, next) => __awaiter(v
             if (ip == undefined)
                 return false;
             try {
-                db.collection("polls")
-                    .doc(param)
-                    .update({
-                    "votes.count": firebase.firestore.FieldValue.increment(1),
-                });
+                let obj = {};
+                obj[`votes.${req.body.vote}.count`] =
+                    firebase.firestore.FieldValue.increment(1);
+                db.collection("polls").doc(param).update(obj);
                 res.json({ message: "Vote has been registered" });
             }
             catch (error) {
-                return alert(`Invalid Poll Search/ID`);
+                console.error(error);
+                return res.json({ message: `Invalid Poll Search/ID` });
             }
             let obj = {};
             obj["id"] = ip;
@@ -91,7 +119,7 @@ app.put("/polls/:poll", body(`vote`).isString(), (req, res, next) => __awaiter(v
             addVote(ip);
         }
         else {
-            alert(`You have voted on this poll, Cant Vote Twice`);
+            res.json({ message: `You have voted on this poll, Cant Vote Twice` });
             return false;
         }
     });
@@ -104,5 +132,3 @@ app.get("*", (req, res, next) => {
 app.listen(port, () => {
     console.log(`Server running on localhost:${port}`);
 });
-//Start doing getPolls Feature in Nodejs
-//Done with createVotes
