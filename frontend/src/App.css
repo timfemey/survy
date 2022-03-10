@@ -1,16 +1,34 @@
 .header {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-evenly;
   border-bottom: 2px solid #eee;
+  padding: 4%;
 }
-
-.header > p {
-  margin-top: 1.5% !important;
-}
-
 .header > h2 {
-  margin-top: 1%;
-  margin-left: 0 !important;
-  padding-right: 900px;
+  display: inline;
+  padding-right: 25px;
+}
+.header > div {
+  display: inline-block;
+}
+.links {
+  color: black;
+  text-decoration-line: none;
+  transition: all 1s;
+  padding-left: 37px;
+}
+
+.links:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+@media (min-width: 1024px) {
+  .header {
+    padding: 1%;
+  }
+  .header > div {
+    display: inline-block;
+  }
+  .links {
+    padding-left: 350px;
+  }
 }

@@ -10,7 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import bodyParser from "body-parser";
 import cors from "cors";
 import express from "express";
-import { body, validationResult } from "express-validator";
 import { v4 } from "uuid";
 import { db, rdb, firebase } from "./firebase.js";
 let app;
@@ -20,7 +19,7 @@ app = express();
 app.set("port", port);
 app.set("env", node_env);
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors({ origin: "*" }));
 import rateLimit from "express-rate-limit";
 const rateLimiter = rateLimit({
     windowMs: 2 * 60 * 1000,
@@ -34,7 +33,7 @@ if (!db) {
     console.error(`Firebase database not set or initialized`);
     process.exit(1);
 }
-app.get("/polls/:poll", (req, res, next) => {
+app.get("/poll/:poll", (req, res, next) => {
     var _a;
     let param = String((_a = req.params) === null || _a === void 0 ? void 0 : _a.poll).toString();
     db.collection("polls")
@@ -43,7 +42,7 @@ app.get("/polls/:poll", (req, res, next) => {
         .then((doc) => {
         if (doc.exists) {
             let { author, title, votes } = doc.data();
-            res.json({ author: author, title: title, votes: votes });
+            return res.json({ author: author, title: title, votes: votes });
         }
         else {
             res.json({ message: `Poll not Found` });
@@ -51,54 +50,47 @@ app.get("/polls/:poll", (req, res, next) => {
         }
     });
 });
-app.post("/polls", body(`title`).isString(), body(`author`).isString(), body(`votes`).isArray({ min: 2, max: 4 }), (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const err = validationResult(req);
-    if (!err.isEmpty()) {
-        return res
-            .status(422)
-            .json({ message: "Wrong Input Data", error: err.array() });
-    }
+app.post("/polls", (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    //Dynamic Object for Data in Firebase
     let obj = {};
+    console.log(req.body);
+    if (req.body.votes.length + 1 < 2)
+        return res.json({ message: "Min: 2 Max:4 Options" });
     req.body.votes.map((vote) => {
         obj[`${vote}`] = { count: 0 };
     });
     let data = {
         id: v4(),
-        author: req.body.author,
-        title: req.body.title,
+        author: String(req.body.author).toString(),
+        title: String(req.body.title).toString(),
         votes: obj,
+        privacy: req.body.privacy,
     };
-    //Add Data to Database
+    // Add Data to Database
     try {
         yield db.collection("polls").doc(data.id).set(data);
+        return res.json({
+            message: "Poll Created",
+            id: data.id,
+            title: data.title,
+        });
     }
     catch (err) {
         return res.json({ message: err });
     }
     // Server Response
-    return res.json({
-        message: "Poll Created",
-        id: data.id,
-        title: data.title,
-    });
 }));
-app.put("/polls/:poll", body(`vote`).isString(), (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+app.put("/poll/:poll", (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const err = validationResult(req);
-    if (!err.isEmpty()) {
-        return res
-            .status(422)
-            .json({ message: "Wrong Input Data", error: err.array() });
-    }
     const param = String((_a = req.params) === null || _a === void 0 ? void 0 : _a.poll).toString();
+    const vote = String(req.body.vote).toString();
     function addVote(ip) {
         return __awaiter(this, void 0, void 0, function* () {
             if (ip == undefined)
                 return false;
             try {
                 let obj = {};
-                obj[`votes.${req.body.vote}.count`] =
-                    firebase.firestore.FieldValue.increment(1);
+                obj[`votes.${vote}.count`] = firebase.firestore.FieldValue.increment(1);
                 db.collection("polls").doc(param).update(obj);
                 res.json({ message: "Vote has been registered" });
             }
@@ -115,11 +107,11 @@ app.put("/polls/:poll", body(`vote`).isString(), (req, res, next) => __awaiter(v
     rdb.ref(`${param}`).on("value", (snapshot) => {
         const data = snapshot.val();
         const ip = req.socket.remoteAddress;
-        if (data.id != ip && req.body.vote == "yes") {
+        if (data.id != ip && vote == "yes") {
             addVote(ip);
         }
         else {
-            res.json({ message: `You have voted on this poll, Cant Vote Twice` });
+            res.json({ message: `You have voted on this poll before` });
             return false;
         }
     });
