@@ -18,8 +18,9 @@ const node_env = process.env.NODE_ENV;
 app = express();
 app.set("port", port);
 app.set("env", node_env);
+app.enable("trust proxy");
 app.use(bodyParser.json());
-app.use(cors({ origin: "*" }));
+app.use(cors({ origin: "https://survy-ap.web.app" }));
 import rateLimit from "express-rate-limit";
 const rateLimiter = rateLimit({
     windowMs: 2 * 60 * 1000,
@@ -86,8 +87,6 @@ app.put("/poll/:poll", (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     const vote = String(req.body.vote).toString();
     function addVote(ip) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (ip == undefined)
-                return false;
             try {
                 let obj = {};
                 obj[`votes.${vote}.count`] = firebase.firestore.FieldValue.increment(1);
@@ -104,10 +103,14 @@ app.put("/poll/:poll", (req, res, next) => __awaiter(void 0, void 0, void 0, fun
             poll.set(obj);
         });
     }
-    rdb.ref(`${param}`).on("value", (snapshot) => {
+    rdb
+        .ref(`${param}`)
+        .once("value")
+        .then((snapshot) => {
         const data = snapshot.val();
-        const ip = req.socket.remoteAddress;
-        if (data.id != ip && vote == "yes") {
+        console.log(param, data);
+        const ip = req.ip;
+        if (data == null) {
             addVote(ip);
         }
         else {
@@ -116,6 +119,9 @@ app.put("/poll/:poll", (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         }
     });
 }));
+process.on("uncaughtException", (err) => {
+    console.log("Server Error Ocurred");
+});
 //Invalid Page
 app.get("*", (req, res, next) => {
     res.status(400).json({ message: "No Such Page, 404 Error" });
