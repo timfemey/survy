@@ -2,7 +2,6 @@ import axios from "axios";
 import React from "react";
 import { useState } from "react";
 import "./create-poll-style.css";
-import { Link } from "react-router-dom";
 
 let i = 1;
 
@@ -44,7 +43,11 @@ const CreatePoll = () => {
       return false;
     } else {
       setData(response.data);
-      alert(data.message);
+      // alert(data.message);
+      let toast = document.getElementById("liveToast");
+      // eslint-disable-next-line no-undef
+      let toaster = new bootstrap.Toast(toast);
+      toaster.show();
     }
   }
 
@@ -84,97 +87,126 @@ const CreatePoll = () => {
 
   return (
     <>
+      <h1>Create Poll</h1>
+
+      <div id="body">
+        <label for="title">Poll Name:</label>
+        <input
+          id="title"
+          type="text"
+          onBlur={(e) => {
+            setTitle(e.currentTarget.value);
+          }}
+          placeholder="Title"
+          name="title"
+          required
+        />
+        <br />
+        <label for="author">Author Name:</label>
+        <input
+          id="author"
+          onBlur={(e) => {
+            setAuthor(e.currentTarget.value);
+          }}
+          type="text"
+          name="author"
+          placeholder="Author Name"
+          required
+        />
+
+        <br />
+        <label for="privacy">Privacy Setting:</label>
+        <button
+          name="privacy"
+          style={{ fontSize: "14px" }}
+          onClick={(e) => {
+            e.preventDefault();
+            setPrivacy(!privacy);
+          }}
+        >
+          Privacy: {privacy ? "Public " : "Private"}
+        </button>
+        <br />
+        {optionCount.map((val, i) => {
+          return (
+            <>
+              <label for={i}>Vote Opt {i + 1}:</label>
+              <input
+                key={i}
+                onBlur={(e, i) => check(e, i)}
+                onDoubleClick={(e) => removeOption(e)}
+                type="text"
+                name={i}
+                placeholder="Double Click to delete "
+                required
+              />
+              <button key={i} onClick={() => addOption()}>
+                +
+              </button>
+              <br />
+            </>
+          );
+        })}
+
+        <br />
+        <button
+          className="btn btn-block btn-dark"
+          id="create"
+          type="submit"
+          onClick={(e) => createPoll(e)}
+        >
+          Create Poll
+        </button>
+      </div>
+
       {data.id ? (
-        <>
-          <h3>Poll created Successfully</h3>
-          <p>
-            Title: {data.title}
-            <br />
-            Privacy:{" "}
-            {privacy
-              ? "Public Poll, shown in home page and Link too"
-              : "Private Poll, Only People with Link Can See and Vote"}
-            <br />
-            Link:{" "}
-            <Link to={"http://localhost:3000/poll/" + data.id}>
-              <a href={"http://localhost:3000/poll/" + data.id} target="_blank">
-                {"http://localhost:3000/poll/" + data.id}
-              </a>
-            </Link>
-          </p>
-        </>
-      ) : (
-        <>
-          <h1>Create Poll</h1>
-
-          <div id="body">
-            <label for="title">Poll Name:</label>
-            <input
-              id="title"
-              type="text"
-              onBlur={(e) => {
-                setTitle(e.currentTarget.value);
-              }}
-              placeholder="Title"
-              name="title"
-              required
-            />
-            <br />
-            <label for="author">Author Name:</label>
-            <input
-              id="author"
-              onBlur={(e) => {
-                setAuthor(e.currentTarget.value);
-              }}
-              type="text"
-              name="author"
-              placeholder="Author Name"
-              required
-            />
-
-            <br />
-            <label for="privacy">Privacy Setting:</label>
-            <button
-              name="privacy"
-              style={{ fontSize: "14px" }}
-              onClick={(e) => {
-                e.preventDefault();
-                setPrivacy(!privacy);
-              }}
-            >
-              Privacy: {privacy ? "Public " : "Private"}
-            </button>
-            <br />
-            {optionCount.map((val, i) => {
-              return (
-                <>
-                  <label for={i}>Vote Opt {i + 1}:</label>
-                  <input
-                    key={i}
-                    onBlur={(e, i) => check(e, i)}
-                    onDoubleClick={(e) => removeOption(e)}
-                    type="text"
-                    name={i}
-                    placeholder="Double Click to delete "
-                    required
-                  />
-                  <button key={i} onClick={() => addOption()}>
-                    +
-                  </button>
-                  <br />
-                </>
-              );
-            })}
-
-            <br />
-            <button id="create" type="submit" onClick={(e) => createPoll(e)}>
-              Create Poll
-            </button>
+        <div
+          className="position-fixed bottom-0 end-0 p-3"
+          style={{ zIndex: "11" }}
+        >
+          <div
+            id="liveToast"
+            className="toast"
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+          >
+            <div className="toast-header">
+              <strong className="me-auto">Poll Title: {data.title}</strong>
+              <small>
+                <b>Privacy: {privacy ? "Public" : "Private "}</b>
+              </small>
+              <button
+                type="button"
+                className="btn-close"
+                data-bs-dismiss="toast"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div className="toast-body">
+              <p>Poll Created Succesfully</p>
+            </div>
+            <div className="mt-2 pt-2 border-top">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigator.clipboard
+                    .writeText("http://localhost:3000/poll/" + data.id)
+                    .then(() => alert("Copied!"));
+                }}
+                type="button"
+                className="btn btn-primary btn-sm"
+              >
+                Copy Link
+              </button>
+            </div>
           </div>
-        </>
+        </div>
+      ) : (
+        ""
       )}
     </>
   );
 };
 
-export default CreatePoll;
+export default React.memo(CreatePoll);

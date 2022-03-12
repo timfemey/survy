@@ -12,9 +12,9 @@ const PollComp = ({ id, author, takes, poll }) => {
       onClick={() => window.open(`${window.location.href}poll/${id}`, "_blank")}
       className="indi_poll"
     >
-      <h3>Author: {author}</h3>
+      <h4>Author: {author}</h4>
       <p>{poll ? poll : "Loading..."} </p>
-      <ol>
+      <ul>
         {list.map((val, i) => {
           return (
             <>
@@ -23,10 +23,10 @@ const PollComp = ({ id, author, takes, poll }) => {
             </>
           );
         })}
-      </ol>
+      </ul>
       <span>Click on card to see poll and vote</span>
     </div>
   );
 };
 
-export default PollComp;
+export default React.memo(PollComp);

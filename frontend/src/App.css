@@ -18,6 +18,7 @@
 
 .links:hover {
   cursor: pointer;
+  color: black;
   text-decoration: underline;
 }
 
