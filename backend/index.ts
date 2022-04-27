@@ -1,8 +1,8 @@
 import bodyParser from "body-parser";
-import cors from "cors";
 import express, { Express } from "express";
 import { v4 } from "uuid";
 import { db, rdb, firebase } from "./firebase.js";
+import cors from "cors";
 let app: Express;
 let port: number | string = process.env.PORT || 5000;
 const node_env = process.env.NODE_ENV;
@@ -13,7 +13,6 @@ app.set("env", node_env);
 app.enable("trust proxy");
 
 app.use(bodyParser.json());
-app.use(cors({ origin: "https://survy-ap.web.app" }));
 
 import rateLimit from "express-rate-limit";
 
@@ -40,7 +39,24 @@ if (!db) {
   process.exit(1);
 }
 
-app.get("/poll/:poll", (req, res, next) => {
+app.use(function (req, res, next) {
+  res.setHeader("Access-Control-Allow-Origin", "https://survy-ap.web.app"); // restrict it to the required domain
+
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, OPTIONS, PUT, PATCH"
+  );
+
+  // Request headers you wish to allow
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-Requested-With,Content-type"
+  );
+  next();
+});
+
+app.get("/poll/:poll", (req, res) => {
+  if (req.secure === false) return false;
   let param = String(req.params?.poll).toString();
   db.collection("polls")
     .doc(param)
@@ -56,7 +72,8 @@ app.get("/poll/:poll", (req, res, next) => {
     });
 });
 
-app.post("/polls", async (req, res, next) => {
+app.post("/polls", async (req, res) => {
+  if (req.secure === false) return false;
   //Dynamic Object for Data in Firebase
   let obj = {};
   console.log(req.body);
@@ -88,7 +105,8 @@ app.post("/polls", async (req, res, next) => {
   // Server Response
 });
 
-app.put("/poll/:poll", async (req, res, next) => {
+app.put("/poll/:poll", async (req, res) => {
+  if (req.secure === false) return false;
   const param = String(req.params?.poll).toString();
   const vote = String(req.body.vote).toString();
   async function addVote(ip: string | undefined) {

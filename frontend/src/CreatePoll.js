@@ -22,14 +22,13 @@ const CreatePoll = () => {
     if (!title && author) return alert("Set Poll Info :)");
     alert("Loading... ;)");
 
-    e.preventDefault();
-
     const response = await axios.request({
       method: "POST",
-      url: `http://localhost:5000/polls`,
+      url: `https://survy-backend.herokuapp.com/polls`,
       headers: {
         "Content-Type": "application/json",
       },
+
       data: JSON.stringify({
         title: title,
         author: author,
@@ -191,7 +190,7 @@ const CreatePoll = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   navigator.clipboard
-                    .writeText("http://localhost:3000/poll/" + data.id)
+                    .writeText("https://survy-ap.web.app/poll/" + data.id)
                     .then(() => alert("Copied!"));
                 }}
                 type="button"

@@ -6,7 +6,7 @@ import { db } from "./firebase";
 const ViewPoll = () => {
   const [data, setData] = useState({});
   const [state, setState] = useState({ response: "Nothing" });
-  const [list, setList] = useState([]);
+
   const [options, setOptions] = useState([]);
   const [key, setKey] = useState([]);
 
@@ -14,7 +14,7 @@ const ViewPoll = () => {
   let { poll } = useParams();
 
   let voted = false;
-  const link = `http://localhost:5000/poll/${poll}`;
+  const link = `https://survy-backend.herokuapp.com/poll/${poll}`;
   let arr = [];
   let arr2 = [];
 
@@ -38,6 +38,7 @@ const ViewPoll = () => {
       headers: {
         "Content-Type": "application/json",
       },
+
       data: JSON.stringify({
         vote: vote_option,
       }),
@@ -53,12 +54,13 @@ const ViewPoll = () => {
 
   const pollData = async () => {
     let res = await axios.get(`${link}`);
+
     setData(res.data);
-    let arr = [];
-    for (const [key, value] of Object.entries(res.data.votes)) {
-      arr.push(key);
-    }
-    setList(arr);
+    // let arr = [];
+    // for (const [key, value] of Object.entries(res.data.votes)) {
+    //   arr.push(key);
+    // }
+    // setList(arr);
   };
   const load = () => {
     db.collection("polls")
@@ -109,13 +111,13 @@ const ViewPoll = () => {
           {options.map((data, i) => {
             return (
               <li key={i} className="list-group-item">
-                {key[i]}:{data.count} vote(s)
+                {key[i]} has {data.count} vote(s)
               </li>
             );
           })}
         </ul>
         <div className="card-body">
-          {list.map((val, i) => {
+          {options.map((val, i) => {
             return (
               <>
                 <div key={i} style={{ float: "none" }} className="form-check">
@@ -127,11 +129,12 @@ const ViewPoll = () => {
                       others.forEach((box) => (box.checked = false));
 
                       e.currentTarget.checked = true;
+
                       setVote(e.currentTarget.value);
                     }}
                     style={{ float: "none", paddingRight: "0", padding: "0" }}
                     type="checkbox"
-                    value={val}
+                    value={key[i]}
                     id={i}
                   />
                   <label
@@ -140,7 +143,7 @@ const ViewPoll = () => {
                     htmlFor={i}
                   >
                     {" "}
-                    {val}
+                    {key[i]}
                   </label>
                 </div>
               </>

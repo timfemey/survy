@@ -8,7 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import bodyParser from "body-parser";
-import cors from "cors";
 import express from "express";
 import { v4 } from "uuid";
 import { db, rdb, firebase } from "./firebase.js";
@@ -20,7 +19,6 @@ app.set("port", port);
 app.set("env", node_env);
 app.enable("trust proxy");
 app.use(bodyParser.json());
-app.use(cors({ origin: "https://survy-ap.web.app" }));
 import rateLimit from "express-rate-limit";
 const rateLimiter = rateLimit({
     windowMs: 2 * 60 * 1000,
@@ -34,8 +32,17 @@ if (!db) {
     console.error(`Firebase database not set or initialized`);
     process.exit(1);
 }
-app.get("/poll/:poll", (req, res, next) => {
+app.use(function (req, res, next) {
+    res.setHeader("Access-Control-Allow-Origin", "https://survy-ap.web.app"); // restrict it to the required domain
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH");
+    // Request headers you wish to allow
+    res.setHeader("Access-Control-Allow-Headers", "X-Requested-With,Content-type");
+    next();
+});
+app.get("/poll/:poll", (req, res) => {
     var _a;
+    if (req.secure === false)
+        return false;
     let param = String((_a = req.params) === null || _a === void 0 ? void 0 : _a.poll).toString();
     db.collection("polls")
         .doc(param)
@@ -51,7 +58,9 @@ app.get("/poll/:poll", (req, res, next) => {
         }
     });
 });
-app.post("/polls", (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+app.post("/polls", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    if (req.secure === false)
+        return false;
     //Dynamic Object for Data in Firebase
     let obj = {};
     console.log(req.body);
@@ -81,8 +90,10 @@ app.post("/polls", (req, res, next) => __awaiter(void 0, void 0, void 0, functio
     }
     // Server Response
 }));
-app.put("/poll/:poll", (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+app.put("/poll/:poll", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+    if (req.secure === false)
+        return false;
     const param = String((_a = req.params) === null || _a === void 0 ? void 0 : _a.poll).toString();
     const vote = String(req.body.vote).toString();
     function addVote(ip) {
